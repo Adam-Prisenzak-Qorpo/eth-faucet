@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  faucet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GO_VERSION: 1.16
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8001:8001"
+    volumes:
+      - ${PWD}/config.yaml:/config.yaml
+    command: --config=/config.yaml --http-host=0.0.0.0 --grpc-host=0.0.0.0
