@@ -44,6 +44,7 @@ type Config struct {
 	GasLimit          uint64   `mapstructure:"gas-limit"`
 	IpLimitPerAddress int      `mapstructure:"ip-limit-per-address"`
 	ChainId           int64    `mapstructure:"chain-id"`
+	RateLimitInterval int `mapstructure:"rate-limit-interval"`
 }
 
 // Server capable of funding requests for faucet ETH via gRPC and REST HTTP.
@@ -84,7 +85,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		captcha:       recaptcha.Recaptcha{RecaptchaPrivateKey: cfg.CaptchaSecret},
 		pk:            pk,
 		fundingAmount: fundingAmount,
-		rateLimiter:   newSimpleRateLimiter(cfg.IpLimitPerAddress),
+		rateLimiter:   newSimpleRateLimiter(cfg.IpLimitPerAddress, cfg.RateLimitInterval),
 	}, nil
 }
 

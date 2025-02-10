@@ -23,12 +23,12 @@ type simpleRateLimiter struct {
 	limitRefreshInterval time.Duration
 }
 
-func newSimpleRateLimiter(ipLimitPerAddress int) *simpleRateLimiter {
+func newSimpleRateLimiter(ipLimitPerAddress int, rateLimitInterval int) *simpleRateLimiter {
 	return &simpleRateLimiter{
 		ipLimitPerAddress:    ipLimitPerAddress,
 		fundedAddresses:      make(map[string]bool),
 		ipCounter:            make(map[string]int),
-		limitRefreshInterval: time.Hour * 4, /* Reset limits every 4 hours */
+		limitRefreshInterval: time.Duration(rateLimitInterval) * time.Second,
 	}
 }
 
@@ -54,24 +54,26 @@ func (s *simpleRateLimiter) markAsFunded(ipAddress, ethAddress string) {
 
 // Reduce the counter for each ip every few hours.
 func (s *simpleRateLimiter) refreshLimits(ctx context.Context) {
-	ticker := time.NewTicker(s.limitRefreshInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			s.mutex.Lock()
-			log.WithField(
-				"numIPs", len(s.ipCounter),
-			).Info("Decreasing requests counter for all recorded IP addresses")
-			for ip, ctr := range s.ipCounter {
-				if ctr == 0 {
-					continue
-				}
-				s.ipCounter[ip] = ctr - 1
-			}
-			s.mutex.Unlock()
-		case <-ctx.Done():
-			return
-		}
-	}
+    ticker := time.NewTicker(s.limitRefreshInterval)
+    defer ticker.Stop()
+    for {
+        select {
+        case <-ticker.C:
+            s.mutex.Lock()
+            log.WithField(
+                "numIPs", len(s.ipCounter),
+            ).Info("Decreasing requests counter for all recorded IP addresses")
+            for ip, ctr := range s.ipCounter {
+                if ctr == 0 {
+                    continue
+                }
+                s.ipCounter[ip] = ctr - 1
+            }
+            // Clear funded addresses map
+            s.fundedAddresses = make(map[string]bool)
+            s.mutex.Unlock()
+        case <-ctx.Done():
+            return
+        }
+    }
 }
